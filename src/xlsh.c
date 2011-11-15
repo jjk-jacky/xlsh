@@ -516,6 +516,7 @@ static char* xlsh_cmd_match_command(const char* text, int state)
   return NULL;
 }
 
+#if XLSH_COMPLETION_LOGIN
 static char* xlsh_cmd_match_user(const char* text, int state)
 {
   static size_t len;
@@ -540,6 +541,7 @@ static char* xlsh_cmd_match_user(const char* text, int state)
   endpwent();
   return NULL;
 }
+#endif
 
 static char** xlsh_cmd_complete(const char* text, int start, int end)
 {
@@ -552,8 +554,12 @@ static char** xlsh_cmd_complete(const char* text, int start, int end)
     return rl_completion_matches(const_cast.c,
 				 xlsh_cmd_match_command);
   else
+#if XLSH_COMPLETION_LOGIN
     return rl_completion_matches(const_cast.c,
 				 xlsh_cmd_match_user);
+#else
+    return NULL;
+#endif
 }
 
 int xlsh_cmd_loop(void)
