@@ -17,27 +17,14 @@
 #define XLSH_PATH      "/bin:/usr/bin:/usr/local/bin"
 #define XLSH_REBOOT    "/sbin/shutdown -r now"
 #define XLSH_HALT      "/sbin/shutdown -h now"
-#define XLSH_XRDB      "/usr/bin/xrdb -remove"
 #define XLSH_XTTY      "/dev/console"
-#define XLSH_XTTY_NAME "X11"
 #define XLSH_DATEFMT   "%Y-%m-%d"
 #define XLSH_TIMEFMT   "%H:%M"
 #define XLSH_PAM_TTY   "login"
-#define XLSH_PAM_X11   "xlshd"
 
 #define XLSH_COMPLETION_LOGIN    0
 #define XLSH_COMPLETION_SHOWROOT 1
 #define XLSH_COMPLETION_MINUID   1000
 #define XLSH_COMPLETION_MAXUID   65534
-
-#define XLSHD_TMPDIR   XLSH_TMPDIR
-#define XLSHD_SHELL    "/bin/sh"
-#define XLSHD_PIDFILE  "/var/run/xlshd.pid"
-#define XLSHD_XSERVER  "/usr/bin/X"
-#define XLSHD_XOPTIONS "-nolisten tcp -noreset"
-#define XLSHD_XDISPLAY ":0"
-#define XLSHD_XLSHRC   "/etc/xlsh/xlshrc"
-#define XLSHD_XWAIT    1
-#define XLSHD_XRETRY   2
 
 #endif

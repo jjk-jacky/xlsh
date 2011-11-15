@@ -51,7 +51,6 @@ static xlsh_command_t xlsh_commands[] = {
   { NULL, NULL, NULL },
 };
 
-static int xlsh_X = 0;
 
 static void xlsh_usage(char* argv0)
 {
@@ -99,18 +98,11 @@ int xlsh_func_login(int argc, char** argv)
     return XLSH_EARG;
   }
 
-  if(xlsh_X) {
-    if(!arg_shell)
-      arg_shell = xlsh_config[XLSH_ID_EXEC].value;
-    return xlsh_session_x(arg_user, arg_shell);
-  }
-  else
     return xlsh_session_tty(arg_user, arg_shell);
 }
 
 int xlsh_func_reboot(int argc, char** argv)
 {
-  pid_t xlshd_pid;
 
   printf("Initiating system reboot ...\n");
   if(libxlsh_proc_exec(XLSH_REBOOT, XLSH_DETACH) == -1) {
@@ -118,27 +110,17 @@ int xlsh_func_reboot(int argc, char** argv)
     return XLSH_ERROR;
   }
 
-  xlshd_pid = libxlsh_pid_read(XLSHD_PIDFILE);
-  if(xlshd_pid > 0)
-    kill(xlshd_pid, SIGTERM);
-
   pause();
   return XLSH_EDONE;
 }
 
 int xlsh_func_shutdown(int argc, char** argv)
 {
-  pid_t xlshd_pid;
-
   printf("Initiating system shutdown ...\n");
   if(libxlsh_proc_exec(XLSH_HALT, XLSH_DETACH) == -1) {
     fprintf(stderr, "Failed to execute: %s\n", XLSH_HALT);
     return XLSH_ERROR;
   }
-
-  xlshd_pid = libxlsh_pid_read(XLSHD_PIDFILE);
-  if(xlshd_pid > 0)
-    kill(xlshd_pid, SIGTERM);
 
   pause();
   return XLSH_EDONE;
@@ -241,11 +223,7 @@ int xlsh_session_open(const char* service, const char* user,
 
   if(pam_start(service, user, &conv, &pam_handle) != PAM_SUCCESS)
     return XLSH_ERROR;
-  
-  if(xlsh_X)
-    pam_set_item(pam_handle, PAM_TTY, XLSH_XTTY);
-  else
-    pam_set_item(pam_handle, PAM_TTY, ttyname(0));
+  pam_set_item(pam_handle, PAM_TTY, ttyname(0));
 
   if(pam_authenticate(pam_handle, 0) != PAM_SUCCESS) {
     pam_end(pam_handle, 0);
@@ -287,7 +265,6 @@ int xlsh_session_exec(pam_handle_t* handle, const char* session, const char* arg
   const char* pwname;
   char terminal[256];
   pid_t proc_shell;
-  int   proc_wait = 0;
 
   const char* _arg0 = arg0;
   if(!arg0) _arg0 = session;
@@ -318,14 +295,7 @@ int xlsh_session_exec(pam_handle_t* handle, const char* session, const char* arg
     setenv("HOME", pwinfo->pw_dir, 1);
     setenv("PATH", xlsh_config[XLSH_ID_PATH].value, 1);
     
-    if(xlsh_X) {
-      setenv("SHELL", pwinfo->pw_shell, 1);
-      setenv("DISPLAY", xlsh_config[XLSH_ID_DISPLAY].value, 1);
-      if(libxlsh_proc_exec(XLSH_XRDB, 0) > 0)
-	wait(&proc_wait);
-    }
-    else
-      setenv("SHELL", session, 1);
+    setenv("SHELL", session, 1);
 		
     if(*terminal)
       setenv("TERM", terminal, 1);
@@ -382,70 +352,6 @@ int xlsh_session_tty(const char* user, const char* shell)
   return XLSH_EDONE;
 }
 
-int xlsh_session_x(const char* user, const char* shell)
-{
-  pid_t proc_session;
-  int   proc_result;
-  char  buffer[PATH_MAX];
-
-  sigset_t sigset[2];
-  int      waitflag;
-  
-  pam_handle_t* pam_handle;
-  
-  if((proc_session = fork()) == 0) {
-    if(xlsh_session_open(XLSH_PAM_X11, user, &pam_handle) != XLSH_EOK) {
-      fprintf(stderr, "Authorization failed\n");
-      exit(EXIT_FAILURE);
-    }
-
-    setsid();
-    if(xlsh_session_exec(pam_handle, shell, NULL) != XLSH_EOK) {
-      fprintf(stderr, "Cannot execute shell process: %s\n", shell);
-      exit(EXIT_FAILURE);
-    }
-
-    waitflag = 0;
-    kill(getppid(), SIGUSR1);
-    wait(&waitflag);
-    
-    xlsh_session_close(pam_handle);
-    exit(EXIT_SUCCESS);
-  }
-  else {
-    if(proc_session == -1) {
-      fprintf(stderr, "Could not fork child process: %s\n", strerror(errno));
-      return XLSH_ERROR;
-    }
-
-    sigemptyset(&sigset[0]);
-    sigaddset(&sigset[0], SIGCHLD);
-    sigaddset(&sigset[0], SIGUSR1);
-    sigprocmask(SIG_BLOCK, &sigset[0], &sigset[1]);
-    
-    snprintf(buffer, PATH_MAX, "%s/.xlsh-%d.pid",
-	     xlsh_config[XLSH_ID_TMPDIR].value, getppid());
-    libxlsh_pid_lock(buffer, proc_session, 1);
-    
-    proc_result = sigwaitinfo(&sigset[0], NULL);
-    sigprocmask(SIG_SETMASK, &sigset[1], NULL);
-
-    switch(proc_result) {
-    case SIGCHLD:
-      unlink(buffer);
-      return XLSH_ERROR;
-    case SIGUSR1:
-      return XLSH_EDONE;
-    default:
-      fprintf(stderr, "wait() syscall failed for session process: %s\n",
-	      strerror(errno));
-      unlink(buffer);
-      return XLSH_ERROR;
-    }
-  }
-    
-  return XLSH_EOK;
-}
 
 // Configuration
 void xlsh_config_init(char* exec_arg)
@@ -616,7 +522,7 @@ int xlsh_sys_getinfo(xlsh_system_t* sysinfo)
   struct tm *tminfo;
   time_t timeval;
   
-  char* disp_name, *tty_name;
+  char *tty_name;
   char  tty_path[PATH_MAX];
   
   memset(sysinfo, 0, sizeof(xlsh_system_t));
@@ -629,15 +535,7 @@ int xlsh_sys_getinfo(xlsh_system_t* sysinfo)
     strcpy(tty_path, XLSH_XTTY);
   strncpy(sysinfo->ttypath, tty_path + 5, sizeof(sysinfo->ttypath));
   
-  if(xlsh_X) {
-    disp_name = getenv("DISPLAY");
-    if(disp_name[0] == ':')
-      disp_name++;
-    sprintf(tty_path, "%s/%s", XLSH_XTTY_NAME, disp_name);
-    tty_name = tty_path;
-  }
-  else
-    tty_name = tty_path + 5;
+  tty_name = tty_path + 5;
   strncpy(sysinfo->ttyname, tty_name, sizeof(sysinfo->ttyname));
   
   timeval = time(NULL);
@@ -727,9 +625,6 @@ int main(int argc, char** argv)
   sigaddset(&sigmask, SIGHUP);
   sigprocmask(SIG_BLOCK, &sigmask, NULL);
 
-  if(getenv("DISPLAY"))
-    xlsh_X = 1;
-  
   xlsh_config_init(opt_exec);
   xlsh_sys_issue(xlsh_config[XLSH_ID_ISSUE].value);
   

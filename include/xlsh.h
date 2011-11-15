@@ -58,7 +58,6 @@ int xlsh_session_close(pam_handle_t* handle);
 int xlsh_session_exec(pam_handle_t* handle, const char* session, const char* arg0);
 
 int xlsh_session_tty(const char* user, const char* shell);
-int xlsh_session_x(const char* user, const char* shell);
 
 int xlsh_sys_getinfo(xlsh_system_t* sysinfo);
 int xlsh_sys_issue(const char* issuefile);
