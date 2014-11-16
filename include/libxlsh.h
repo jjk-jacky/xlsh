@@ -23,7 +23,6 @@
 #define XLSH_DETACH    0x02
 
 size_t libxlsh_strnlen(const char* s, size_t maxlen);
-void   libxlsh_proc_sigmask(void);
 pid_t  libxlsh_proc_exec(const char* cmdline, int flags);
 pid_t  libxlsh_pid_read(const char* filename);
 int    libxlsh_pid_lock(const char* filename, pid_t pid, int flags);

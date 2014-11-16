@@ -16,8 +16,6 @@
 #include <config.h>
 #include <libxlsh.h>
 
-static sigset_t xlsh_default_sigmask;
-
 // Compatibility functions
 size_t libxlsh_strnlen(const char* s, size_t maxlen)
 {
@@ -27,11 +25,6 @@ size_t libxlsh_strnlen(const char* s, size_t maxlen)
 }
 
 // Process functions
-void libxlsh_proc_sigmask(void)
-{
-  sigprocmask(0, NULL, &xlsh_default_sigmask);
-}
-
 pid_t libxlsh_proc_exec(const char* cmdline, int flags)
 {
   pid_t pid;
@@ -52,7 +45,6 @@ pid_t libxlsh_proc_exec(const char* cmdline, int flags)
 
   if(flags & XLSH_DETACH)
     setsid();
-  sigprocmask(SIG_SETMASK, &xlsh_default_sigmask, NULL);
   execv(argv[0], argv);  
   exit(EXIT_FAILURE);
 }

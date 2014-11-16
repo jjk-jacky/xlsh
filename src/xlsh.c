@@ -606,7 +606,6 @@ int main(int argc, char** argv)
 {
   char*    opt_exec = NULL;
   int      retvalue;
-  sigset_t sigmask;
   
   if(argc > 1) {
     if(strcmp(argv[1], "-h") == 0)
@@ -618,12 +617,6 @@ int main(int argc, char** argv)
     fprintf(stderr, "%s: You need to have root privileges\n", argv[0]);
     return EXIT_FAILURE;
   }
-  
-  libxlsh_proc_sigmask();
-  sigemptyset(&sigmask);
-  sigaddset(&sigmask, SIGINT);
-  sigaddset(&sigmask, SIGHUP);
-  sigprocmask(SIG_BLOCK, &sigmask, NULL);
 
   xlsh_config_init(opt_exec);
   xlsh_sys_issue(xlsh_config[XLSH_ID_ISSUE].value);
