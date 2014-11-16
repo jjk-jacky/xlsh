@@ -7,7 +7,7 @@
 prefix = /usr
 
 exec_prefix = $(prefix)
-sbindir     = $(exec_prefix)/sbin
+bindir     = $(exec_prefix)/bin
 
 SHELL = /bin/sh
 INSTALL = install
@@ -37,16 +37,16 @@ xlsh: $(XLSH_OBJ)
 xlsh: LDLIBS=$(XLSH_LIBS)
 
 install: installdirs
-	$(INSTALL_PROGRAM) xlsh $(DESTDIR)$(sbindir)
+	$(INSTALL_PROGRAM) xlsh $(DESTDIR)$(bindir)
 
 install-strip: installdirs
-	$(INSTALL_PROGRAM_STRIP) xlsh $(DESTDIR)$(sbindir)
+	$(INSTALL_PROGRAM_STRIP) xlsh $(DESTDIR)$(bindir)
 
 installdirs:
-	$(INSTALL_DIR) $(DESTDIR)$(sbindir)
+	$(INSTALL_DIR) $(DESTDIR)$(bindir)
 
 uninstall:
-	rm -f ${DESTDIR}$(sbindir)/xlsh
+	rm -f ${DESTDIR}$(bindir)/xlsh
 
 clean:
 	rm -f $(PROGRAMS)
