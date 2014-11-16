@@ -4,7 +4,7 @@
 .DEFAULT_GOAL = all
 .PHONY: all install install-strip installdirs uninstall clean
 
-prefix = /usr/local
+prefix = /usr
 
 exec_prefix = $(prefix)
 sbindir     = $(exec_prefix)/sbin
